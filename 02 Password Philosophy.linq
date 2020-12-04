@@ -1,10 +1,12 @@
-<Query Kind="Statements" />
+<Query Kind="Statements">
+  <Reference Relative="02 input.txt">C:\Drive\Challenges\AoC 2020\02 input.txt</Reference>
+</Query>
 
 var input = @"1-3 a: abcde
 1-3 b: cdefg
 2-9 c: ccccccccc";
 
-input = File.ReadAllText(Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), "02 input.txt"));
+input = File.ReadAllText("02 input.txt");
 
 var data = (
   from m in Regex.Matches(input, @"(\d+)-(\d+) (\w): (\w+)", RegexOptions.Multiline)

@@ -1,4 +1,6 @@
-<Query Kind="Statements" />
+<Query Kind="Statements">
+  <Reference Relative="03 input.txt">C:\Drive\Challenges\AoC 2020\03 input.txt</Reference>
+</Query>
 
 var input = @"..##.......
 #...#...#..
@@ -12,7 +14,7 @@ var input = @"..##.......
 #...##....#
 .#..#...#.#".Split("\r\n");
 
-input = File.ReadAllLines(Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), "03 input.txt"));
+input = File.ReadAllLines("03 input.txt");
 
 var height = input.Length;
 var width = input[0].Length;

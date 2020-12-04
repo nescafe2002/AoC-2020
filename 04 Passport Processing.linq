@@ -1,4 +1,6 @@
-<Query Kind="Statements" />
+<Query Kind="Statements">
+  <Reference Relative="04 input.txt">C:\Drive\Challenges\AoC 2020\04 input.txt</Reference>
+</Query>
 
 var input = @"ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
 byr:1937 iyr:2017 cid:147 hgt:183cm
@@ -14,7 +16,7 @@ hgt:179cm
 hcl:#cfa07d eyr:2025 pid:166559648
 iyr:2011 ecl:brn hgt:59in";
 
-input = File.ReadAllText(Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), "04 input.txt"));
+input = File.ReadAllText("04 input.txt");
 
 var passports = (
   from s in input.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
