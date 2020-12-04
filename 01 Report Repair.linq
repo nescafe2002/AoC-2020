@@ -1,6 +1,6 @@
 <Query Kind="Statements" />
 
-var input = new[] {1721, 979, 366, 299, 675, 1456};
+var input = new[] { 1721, 979, 366, 299, 675, 1456 };
 
 input = File.ReadAllLines(Path.Combine(Path.GetDirectoryName(Util.CurrentQueryPath), "01 input.txt")).Select(int.Parse).Distinct().ToArray();
 
