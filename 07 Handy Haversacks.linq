@@ -32,7 +32,7 @@ var rules =
           .Range(0, match.Groups[2].Captures.Count) // (\d+)
           .Select(i => (
             count: int.Parse(match.Groups[2].Captures[i].Value), // (\d+)
-            color: match.Groups[3].Captures[i].Value))); // ([\w ]+)|no other)
+            color: match.Groups[3].Captures[i].Value))); // ([\w ]+)|no other
 
 // How many bag colors can eventually contain at least one shiny gold bag?
 
@@ -42,12 +42,9 @@ var set = new HashSet<string>();
 
 while (queue.TryDequeue(out var bag))
 {
-  foreach (var item in reversedLookup[bag]) // find the bags which can hold the current bag
+  foreach (var item in reversedLookup[bag].Where(x => set.Add(x))) // find the (new) bags which can hold the current bag
   {
-    if (set.Add(item)) // keep track of already added bags
-    {
-      queue.Enqueue(item);
-    }
+    queue.Enqueue(item);
   }
 }
 
