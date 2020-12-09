@@ -36,7 +36,7 @@ IEnumerable<long> cartesian(IEnumerable<long> source) => from x in source from y
 var answer1 =
   input
     .Window(window + 1) // n + 1 elements
-    .First(x => !cartesian(MoreEnumerable.SkipLast(x, 1)).Contains(x.Last())) // sum of n elements == current element
+    .First(x => !cartesian(Enumerable.SkipLast(x, 1)).Contains(x.Last())) // sum of n elements == current element
     .Last() // current element
     .Dump("Answer 1");
 
