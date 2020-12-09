@@ -31,8 +31,20 @@ input = File.ReadAllLines("09 input.txt").Select(long.Parse);
 
 window = 25;
 
-IEnumerable<long> cartesian(IEnumerable<long> source) => source.Cartesian(source, (x, y) => x + y);
+IEnumerable<long> cartesian(IEnumerable<long> source) => from x in source from y in source where x != y select x + y;
 
-var answer1 = input.Window(window + 1).First(x => !cartesian(MoreEnumerable.SkipLast(x, 1)).Contains(x.Last())).Last().Dump("Answer 1");
+var answer1 =
+  input
+    .Window(window + 1) // n + 1 elements
+    .First(x => !cartesian(MoreEnumerable.SkipLast(x, 1)).Contains(x.Last())) // sum of n elements = current elements
+    .Last() // current element
+    .Dump("Answer 1");
 
-Enumerable.Range(0, int.MaxValue).Skip(2).Select(i => input.Window(i).Where(x => x.Sum() == answer1)).First(x => x.Any()).Select(x => x.Min() + x.Max()).First().Dump("Answer 2");
+Enumerable
+  .Range(0, int.MaxValue)
+  .Skip(2) // take pairs of at least 2 elements
+  .Select(i => input.Window(i).Where(x => x.Sum() == answer1)) // sum of pair == answer 1
+  .First(x => x.Any()) // find successful pair
+  .Select(x => x.Min() + x.Max()) // min + max
+  .First()
+  .Dump("Answer 2");
