@@ -39,10 +39,14 @@ while (true)
   {
     var neighbors = 0;
 
-    for (var col = -1; col < width; col++)
+    for (var col = -1; col < width; col++) // Start left from first column
     {
-      neighbors += Enumerable.Range(row - 1, 3).Count(x => occupied((x, col + 1))); // One col to right
-      neighbors -= Enumerable.Range(row - 1, 3).Count(x => occupied((x, col - 2))); // Two cols to left
+      neighbors +=
+        Enumerable
+          .Range(row - 1, 3) // From one row above to one row below current
+          .Sum(x =>
+            (occupied((x, col + 1)) ? 1 : 0) // add column to the right
+          - (occupied((x, col - 2)) ? 1 : 0)); // substract column to the left (out of window)
 
       var key = (row, col);
 
@@ -69,26 +73,27 @@ map.Where(x => x.Value).ToList().ForEach(x => map[x.Key] = false);
 
 // Dictionary of keys => visible neighbors
 
-var visibles = map.Keys.ToDictionary(
-  x => x,
-  x => new[] { (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) } // Vectors (dRow, dCol)
-    .Select(v =>
-      Enumerable.Range(1, 50) // Needs tuning
-        .Select(i => (x.row + i * v.Item1, x.col + i * v.Item2)) // Key + i * Vector
-        .Where(x => x.Item1 >= 0 && x.Item1 < height)
-        .Where(x => x.Item2 >= 0 && x.Item2 < width)
-        .Where(x => map.ContainsKey(x)) // Has seat
-        .Take(1)) // First visible seat
-    .Where(x => x.Any())
-    .SelectMany(x => x));
+var visibles =
+  map.Keys.SelectMany(
+    key =>
+      from v in new[] { (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) } // Vectors (dRow, dCol)
+      from b in
+        Enumerable.Range(1, 15) // Needs tuning
+          .Select(i => (key.row + i * v.Item1, key.col + i * v.Item2)) // Key + i * Vector
+          .Where(x => x.Item1 >= 0 && x.Item1 < height)
+          .Where(x => x.Item2 >= 0 && x.Item2 < width)
+          .Where(x => map.ContainsKey(x)) // Has seat
+          .Take(1) // First visible seat
+      select (key, b))
+    .ToLookup(x => x.key, x => x.b);
 
 while (true)
 {
   var newStates = (
-    from key in map.Keys
-    let neighbors = visibles.TryGetValue(key, out var value) ? value.Count(x => occupied(x)) : 0 // Count visible occupied seats
-    where map.TryGetValue(key, out var value) && (value ? neighbors >= 5 : neighbors == 0)
-    select key).ToList();
+    from kvp in map
+    let neighbors = visibles[kvp.Key].Count(x => occupied(x)) // Count visible occupied seats
+    where kvp.Value ? neighbors >= 5 : neighbors == 0
+    select kvp).ToList();
 
   if (!newStates.Any())
   {
@@ -96,8 +101,8 @@ while (true)
     break;
   }
 
-  foreach (var item in newStates)
+  foreach (var kvp in newStates)
   {
-    map[item] ^= true;
+    map[kvp.Key] = !kvp.Value;
   }
 }
