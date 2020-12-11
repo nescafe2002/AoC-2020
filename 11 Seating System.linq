@@ -61,58 +61,43 @@ while (true)
   {
     map[item.Item1] = item.Item2;
   }
-  dc.Refresh();
-  //await Task.Delay(500);
 }
 
 // --- Part Two ---
 
-foreach (var item in map.Keys.ToList())
-{
-  map[item] = false;
-}
+map.Where(x => x.Value).ToList().ForEach(x => map[x.Key] = false);
 
-IEnumerable<(int row, int col)> visible((int row, int col) key) =>
-  new[] { (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) }
+// Dictionary of keys => visible neighbors
+
+var visibles = map.Keys.ToDictionary(
+  x => x,
+  x => new[] { (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) } // Vectors (dRow, dCol)
     .Select(v =>
       Enumerable.Range(1, 50) // Needs tuning
-        .Select(i => (key.row + i * v.Item1, key.col + i * v.Item2))
+        .Select(i => (x.row + i * v.Item1, x.col + i * v.Item2)) // Key + i * Vector
         .Where(x => x.Item1 >= 0 && x.Item1 < height)
         .Where(x => x.Item2 >= 0 && x.Item2 < width)
-        .Where(x => map.ContainsKey(x))
-        .Take(1))
+        .Where(x => map.ContainsKey(x)) // Has seat
+        .Take(1)) // First visible seat
     .Where(x => x.Any())
-    .SelectMany(x => x);
-
-var visibles = map.Keys.ToDictionary(x => x, x => visible(x));
+    .SelectMany(x => x));
 
 while (true)
 {
-  var newStates = new List<((int row, int col), bool value)>();
+  var newStates = (
+    from key in map.Keys
+    let neighbors = visibles.TryGetValue(key, out var value) ? value.Count(x => occupied(x)) : 0 // Count visible occupied seats
+    where map.TryGetValue(key, out var value) && (value ? neighbors >= 5 : neighbors == 0)
+    select key).ToList();
 
-  for (var row = 0; row < height; row++)
-  {
-    for (var col = 0; col < width; col++)
-    {
-      var key = (row, col);
-
-      var neighbors = visibles.TryGetValue(key, out var value) ? value.Count(x => map.TryGetValue(x, out var value) && value) : 0;
-      
-      if (map.TryGetValue(key, out var value2) && (value2 ? neighbors >= 5 : neighbors == 0))
-      {
-        newStates.Add((key, !value2));
-      }
-    }
-  }
   if (!newStates.Any())
   {
     map.Count(x => x.Value).Dump("Answer 2");
     break;
   }
+
   foreach (var item in newStates)
   {
-    map[item.Item1] = item.Item2;
+    map[item] ^= true;
   }
-  dc.Refresh();
-  //await Task.Delay(500);
 }
