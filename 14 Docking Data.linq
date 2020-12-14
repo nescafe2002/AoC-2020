@@ -10,27 +10,24 @@ mem[8] = 0".Split("\r\n").ToArray();
 input = File.ReadAllLines("14 input.txt");
 
 var mask = "";
+var orMask = 0L;
+var andMask = 0L;
 var memory = new Dictionary<long, long>();
 var re = new Regex(@"mem\[(\d+)\] = (\d+)");
+
+IEnumerable<long> decompose(string s, char c) => Enumerable.Range(0, s.Length).Where(x => s[x] == c).Select(x => 1L << (s.Length - x - 1));
 
 foreach (var line in input)
 {
   if (line.StartsWith("mask = "))
   {
     mask = line.Substring("mask = ".Length);
+    orMask = decompose(mask, '1').Sum();
+    andMask = decompose(mask, '0').Sum();
   }
-  else
+  else if (re.Match(line) is var m)
   {
-    var m = re.Match(line);
-
-    memory[long.Parse(m.Groups[1].Value)] =
-      Convert.ToInt64(
-        new string(
-          Convert.ToString(long.Parse(m.Groups[2].Value), 2)
-            .PadLeft(36, '0')
-            .Zip(mask)
-            .Select(x => x.Second switch { 'X' => x.First, _ => x.Second })
-            .ToArray()), 2);
+    memory[long.Parse(m.Groups[1].Value)] = long.Parse(m.Groups[2].Value) & andMask | orMask;
   }
 }
 
@@ -50,28 +47,26 @@ foreach (var line in input)
   if (line.StartsWith("mask = "))
   {
     mask = line.Substring("mask = ".Length);
+    orMask = decompose(mask, '1').Sum();
   }
-  else
+  else if (re.Match(line) is var m)
   {
-    var m = re.Match(line);
+    // If the bitmask bit is 1, the corresponding memory address bit is overwritten with 1.
 
-    var address =
-      Convert.ToString(long.Parse(m.Groups[1].Value), 2)
-        .PadLeft(36, '0')
-        .Zip(mask)
-        .Select(x => x.Second switch { '0' => x.First, _ => x.Second })
-        .ToArray();
+    var address = long.Parse(m.Groups[1].Value) | orMask;
 
-    var list = new List<char[]>() { address };
+    var list = new List<long>() { address };
 
-    foreach (var ix in Enumerable.Range(0, 36).Where(x => address[x] == 'X'))
+    // If the bitmask bit is X, the corresponding memory address bit is floating.
+
+    foreach (var bit in decompose(mask, 'X'))
     {
-      list = list.SelectMany(item => new[] { '1', '0' }.Select(c => item.Select((x, i) => i == ix ? c : x).ToArray())).ToList();
+      list = list.SelectMany(x => new[] { x | bit, x & (bit ^ long.MaxValue) }).ToList();
     }
 
     foreach (var item in list)
     {
-      memory[Convert.ToInt64(new string(item), 2)] = long.Parse(m.Groups[2].Value);
+      memory[item] = long.Parse(m.Groups[2].Value);
     }
   }
 }
