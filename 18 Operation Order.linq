@@ -21,7 +21,7 @@ void Main()
   {
     var level = 0;
 
-    var data = (
+    var data = new LinkedList<Record>(
       from m in re.Matches(line)
       let oper = m.Groups[2].Value
       select new Record
@@ -30,34 +30,46 @@ void Main()
         Operator = !string.IsNullOrEmpty(oper) ? oper : null,
         Level = oper switch { "(" => level++, ")" => --level, _ => level },
       }
-    ).ToList();
+    );
 
     // --- Part Two ---
 
-    for (var ix = 0; true;) // <-- false; for Part One, true; for Part Two
+    for (var node = data.First; node != null; node = node.Next)
     {
+      if (node.Value.Operator != "+")
+      {
+        continue;
+      }
+
       // Group summations A + B => ( A + B )
 
-      var next = data.Select((item, index) => (item, index)).Skip(ix).FirstOrDefault(x => x.item.Operator == "+");
-      if (next == default) break;
+      for (var prev = node.Previous; prev != null; prev = prev.Previous) // Left
+      {
+        prev.Value.Level++;
 
-      var (index, item) = (next.index, next.item);
+        if (prev.Value.Level - 1 == node.Value.Level && (prev.Value.Operator == "(" || prev.Value.Digit != null))
+        {
+          data.AddBefore(prev, new Record { Operator = "(", Level = node.Value.Level });
+          break;
+        }
+      }
 
-      // Find nearest group ( a [op] b ) or number
-      var ixLeft = data.Select((item, index) => (item, index)).Take(index).Last(x => x.item.Level == item.Level && (x.item.Operator == "(" || x.item.Digit != null)).index;
-      var ixRight = data.Select((item, index) => (item, index)).Skip(index).First(x => x.item.Level == item.Level && (x.item.Operator == ")" || x.item.Digit != null)).index;
+      for (var next = node.Next; next != null; next = next.Next) // Right
+      {
+        next.Value.Level++;
 
-      // Add parentheses
-      data.Insert(ixLeft, new Record { Operator = "(", Level = item.Level });
-      data.Insert(ixRight + 2, new Record { Operator = ")", Level = item.Level });
+        if (next.Value.Level - 1 == node.Value.Level && (next.Value.Operator == ")" || next.Value.Digit != null))
+        {
+          data.AddAfter(next, new Record { Operator = ")", Level = node.Value.Level });
+          break;
+        }
+      }
 
-      // Level up inner expression
-      data.Skip(ixLeft + 1).Take(ixRight - ixLeft + 1).ToList().ForEach(x => x.Level++);
-
-      ix = index + 2;
+      node.Value.Level++;
     }
 
     //data.Select(x => x.ToString()).Dump();
+    //string.Join("", data.Select(x => x.Digit?.ToString() ?? x.Operator)).Dump();
 
     var stack = new Stack<(long, string)>();
     var op = null as string;
@@ -101,7 +113,6 @@ void Main()
 
 class Record
 {
-  public int Line { get; set; }
   public long? Digit { get; set; }
   public string Operator { get; set; }
   public int Level { get; set; }
