@@ -32,30 +32,26 @@ IEnumerable<(int row, int col, int z, int w)> block((int row, int col, int z, in
 
 for (var i = 0; i < 6; i++)
 {
-  var newStates = new List<((int row, int col, int z, int w), bool value)>();
-
-  foreach (var item in map.SelectMany(x => block(x).Append(x)).Distinct())
+  foreach (var item in map
+    .SelectMany(x => block(x).Append(x))
+    .Distinct()
+    .Select(x => (key: x, neighbors: block(x).Count(x => map.Contains(x))))
+    .Select(x => (x.key, newState: map.Contains(x.key) switch
+    {
+      true => !new[] { 2, 3 }.Contains(x.neighbors) ? false as bool? : null,
+      false => new[] { 3 }.Contains(x.neighbors) ? true as bool? : null,
+    }))
+    .Where(x => x.newState != null)
+    .ToList())
   {
-    switch (map.Contains(item))
+    switch (item.newState)
     {
-      case true when !new[] { 2, 3 }.Contains(block(item).Count(x => map.Contains(x))):
-        newStates.Add((item, false));
+      case true:
+        map.Add(item.key);
         break;
-      case false when new[] { 3 }.Contains(block(item).Count(x => map.Contains(x))):
-        newStates.Add((item, true));
+      case false:
+        map.Remove(item.key);
         break;
-    }
-  }
-
-  foreach (var item in newStates)
-  {
-    if (item.value)
-    {
-      map.Add(item.Item1);
-    }
-    else
-    {
-      map.Remove(item.Item1);
     }
   }
 }
