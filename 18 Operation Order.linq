@@ -5,17 +5,15 @@
 void Main()
 {
   var input = @"1 + 2 * 3 + 4 * 5 + 6
-  1 + (2 * 3) + (4 * (5 + 6))
-  2 * 3 + (4 * 5)
-  5 + (8 * 3 + 9 + 3 * 4 * 3)
-  5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
-  ((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2".Split("\r\n");
-
-//input = "1 + (2 + 3) + 6 + 7 + 8".Split("\r\n");
+    1 + (2 * 3) + (4 * (5 + 6))
+    2 * 3 + (4 * 5)
+    5 + (8 * 3 + 9 + 3 * 4 * 3)
+    5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
+    ((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2".Split("\r\n");
 
   input = File.ReadAllLines("18 input.txt");
 
-  var re = new Regex(@"(\d+)|([+*-])|(\(|\))|\w");
+  var re = new Regex(@"(\d+)|([+*-]|\(|\))|\w");
 
   var result = 0L;
 
@@ -26,62 +24,61 @@ void Main()
     var lineNumber = 0;
 
     var data = (
-      from m in re.Matches("(" + line + ")")
-      let par = m.Groups[3].Value
+      from m in re.Matches(line)
+      let oper = m.Groups[2].Value
       select new Record
       {
         Line = lineNumber++,
         Digit = long.TryParse(m.Groups[1].Value, out var x) ? x as long? : null,
-        Operator = m.Groups[2].Value,
-        Parenthesis = par,
-        Level = par == "(" ? level++ : par == ")" ? --level : level,
+        Operator = !string.IsNullOrEmpty(oper) ? oper : null,
+        Level = oper == "(" ? level++ : oper == ")" ? --level : level,
       }
     ).ToList();
 
-    //data.Dump(string.Join(" ", data.Select(x => x.ToString())));
+    // Group summations A + B => ( A + B )
 
-    while (true)
+    while (true) // <-- false for Part One, true for Part Two
     {
-      var next = data.FirstOrDefault(x => x.Operator == "+" && !handled.Contains(x.Line));
+      var next = data.Select((item, index) => (item, index)).FirstOrDefault(x => x.item.Operator == "+" && !handled.Contains(x.item.Line));
       if (next == default) break;
 
-      var index = data.IndexOf(next).Dump();
+      var index = next.index;
+      var item = next.item;
+      var lvl = item.Level;
 
-      var lvl = next.Level;
+      // Find nearest group ( a [op] b ) or number
+      var l = data.Select((item, index) => (item, index)).Where(x => x.index <= index).Reverse().First(x => x.item.Level == item.Level && (x.item.Operator == "(" || x.item.Digit != null)).index;
+      var r = data.Select((item, index) => (item, index)).Where(x => x.index > index).First(x => x.item.Level == item.Level && (x.item.Operator == ")" || x.item.Digit != null)).index;
 
-      var l = data.Take(index).Reverse().First(x => x.Level == next.Level && (x.Parenthesis == "(" || x.Digit != null));
-      var r = data.Skip(index).First(x => x.Level == next.Level && (x.Parenthesis == ")" || x.Digit != null));
+      // Level up
+      data.Skip(l).Take(r - l + 1).ToList().ForEach(x => x.Level++);
 
-      data.SkipWhile(x => x != l).TakeWhile(x => x != r).ToList().ForEach(x => x.Level++);
+      // Add parentheses
+      data.Insert(l, new Record { Line = lineNumber++, Operator = "(", Level = lvl });
+      data.Insert(r + 2, new Record { Line = lineNumber++, Operator = ")", Level = lvl });
 
-      r.Level++;
-
-      data.Insert(data.IndexOf(l), new Record { Line = lineNumber++, Parenthesis = "(", Level = lvl });
-      data.Insert(data.IndexOf(r) + 1, new Record { Line = lineNumber++, Parenthesis = ")", Level = lvl  });
-
-      handled.Add(next.Line);
+      handled.Add(item.Line);
     }
 
-    //data.Dump(string.Join(" ", data.Select(x => x.ToString())));
+    //data.Select(x => x.ToString()).Dump();
 
     var stack = new Stack<(long, string)>();
     var op = null as string;
-    var left = 0L;
+    var register = 0L;
 
     foreach (var item in data)
     {
-      var digit = item.Digit ?? 0L;
+      var current = item.Digit ?? 0L;
 
-      if (item.Parenthesis == "(")
+      if (item.Operator == "(")
       {
-        stack.Push((left, op));
-        (left, op) = (0, null);
+        stack.Push((register, op));
+        (register, op) = (0, null);
         continue;
       }
-      else if (item.Parenthesis == ")")
+      else if (item.Operator == ")")
       {
-        digit = left;
-        (left, op) = stack.Pop();
+        (current, (register, op)) = (register, stack.Pop());
       }
       else if (!string.IsNullOrEmpty(item.Operator))
       {
@@ -89,28 +86,20 @@ void Main()
         continue;
       }
 
-      if (op != null)
+      register = op switch
       {
-        var right = op switch
-        {
-          "+" => left + digit,
-          "*" => left * digit,
-          "-" => left - digit,
-          _ => throw new NotSupportedException(op),
-        };
-        $"{left} {op} {digit} = {right}".Dump();
-        left = right;
-      }
-      else
-      {
-        left = digit;
-      }
+        null => current,
+        "+" => register + current,
+        "*" => register * current,
+        "-" => register - current,
+        _ => throw new NotSupportedException(op),
+      };
     }
 
-    result += left;
+    result += register;
   }
 
-  result.Dump(" Answer 1");
+  result.Dump("Answer 1 / 2");
 }
 
 // You can define other methods, fields, classes and namespaces here
@@ -120,9 +109,7 @@ class Record
   public int Line { get; set; }
   public long? Digit { get; set; }
   public string Operator { get; set; }
-  public string Parenthesis { get; set; }
   public int Level { get; set; }
-  public bool Handled { get; set; }
 
-  public override string ToString() => Digit?.ToString() + (Operator ?? "") + Parenthesis ?? "";
+  public override string ToString() => string.Join(" ", Enumerable.Repeat("  ", Level).Append(Operator ?? Digit.ToString()).ToArray());
 }
