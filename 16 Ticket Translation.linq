@@ -29,8 +29,8 @@ nearby tickets:
 
 input = File.ReadAllText("16 input.txt").Split("\n\n").Select(x => x.Split("\n", StringSplitOptions.RemoveEmptyEntries)).ToArray();
 
-var fields = input[0].Select(x => x.Split(": ")).Select(x => (field: x[0], allowed: x[1].Split(" or ").Select(y => y.Split('-').Select(int.Parse).ToArray()).Select(y => (min: y[0], max: y[1])))).ToArray();
-var your = input[1].Skip(1).SelectMany(x => x.Split(',').Select(int.Parse).ToArray()).ToArray();
+var fields = input[0].Select(x => x.Split(": ")).Select(x => (name: x[0], allowed: x[1].Split(" or ").Select(y => y.Split('-').Select(int.Parse).ToArray()).Select(y => (min: y[0], max: y[1])))).ToArray();
+var your = input[1].Skip(1).Select(x => x.Split(',').Select(int.Parse).ToArray()).ToArray();
 var nearby = input[2].Skip(1).Select(x => x.Split(',').Select(int.Parse).ToArray()).ToArray();
 
 nearby.SelectMany(x => x).Where(x => !fields.Any(field => field.allowed.Any(a => a.min <= x && x <= a.max))).Sum().Dump("Answer 1");
@@ -39,16 +39,15 @@ nearby.SelectMany(x => x).Where(x => !fields.Any(field => field.allowed.Any(a =>
 
 // Discard invalid tickets
 
-var valid = nearby.Where(x => x.All(y => fields.Any(z => z.allowed.Any(a => a.min <= y && y <= a.max)))).ToArray();
+var valid = your.Concat(nearby).Where(x => x.All(y => fields.Any(z => z.allowed.Any(a => a.min <= y && y <= a.max)))).ToArray();
 
 // Enumerate all possible field / index combinations
 
 var data = (
-  from index in Enumerable.Range(0, your.Length)
-  from f in fields
-  where f.allowed.Any(a => a.min <= your[index] && your[index] <= a.max) // Match my ticket
-  where valid.All(x => f.allowed.Any(a => a.min <= x[index] && x[index] <= a.max)) // Match their ticket
-  select (index, f.field)).ToArray();
+  from index in Enumerable.Range(0, your[0].Length)
+  from field in fields
+  where valid.All(x => field.allowed.Any(a => a.min <= x[index] && x[index] <= a.max))
+  select (index, field.name)).ToArray();
 
 // Store known field name => index combinations
 
@@ -56,11 +55,11 @@ var known = new Dictionary<string, int>();
 
 while (known.Count < fields.Length)
 {
-  var next = data.Where(x => !known.ContainsKey(x.field)).GroupBy(x => x.index).First(x => x.Count() == 1).First();
-  known.Add(next.field, next.index);
+  var next = data.Where(x => !known.ContainsKey(x.name)).GroupBy(x => x.index).Single(x => x.Count() == 1).First();
+  known.Add(next.name, next.index);
 }
 
 // look for the six fields on your ticket that start with the word departure
 // What do you get if you multiply those six values together?
 
-known.Where(x => x.Key.StartsWith("departure ")).Aggregate (1L, (acc, x) => acc * your[x.Value]).Dump("Answer 2");
+known.Where(x => x.Key.StartsWith("departure ")).Aggregate(1L, (acc, x) => acc * your[0][x.Value]).Dump("Answer 2");
