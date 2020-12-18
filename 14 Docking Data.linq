@@ -22,6 +22,8 @@ foreach (var line in input)
   if (line.StartsWith("mask = "))
   {
     mask = line.Substring("mask = ".Length);
+    
+    // A 0 or 1 overwrites the corresponding bit in the value.
     orMask = decompose(mask, '1').Sum();
     andMask = decompose(mask, '0').Sum();
   }
@@ -47,15 +49,14 @@ foreach (var line in input)
   if (line.StartsWith("mask = "))
   {
     mask = line.Substring("mask = ".Length);
+
+    // If the bitmask bit is 1, the corresponding memory address bit is overwritten with 1.
     orMask = decompose(mask, '1').Sum();
   }
   else if (re.Match(line) is var m)
   {
-    // If the bitmask bit is 1, the corresponding memory address bit is overwritten with 1.
 
-    var address = long.Parse(m.Groups[1].Value) | orMask;
-
-    var list = new List<long>() { address };
+    var list = new List<long>() { long.Parse(m.Groups[1].Value) | orMask };
 
     // If the bitmask bit is X, the corresponding memory address bit is floating.
 
