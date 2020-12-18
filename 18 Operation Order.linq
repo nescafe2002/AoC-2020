@@ -13,51 +13,48 @@ void Main()
 
   input = File.ReadAllLines("18 input.txt");
 
-  var re = new Regex(@"(\d+)|([+*-]|\(|\))|\w");
+  var re = new Regex(@"(\d+)|(\S)"); // \d+ = <decimal> | \S = <non-whitespace>
 
   var result = 0L;
 
   foreach (var line in input)
   {
     var level = 0;
-    var handled = new HashSet<int>();
-    var lineNumber = 0;
 
     var data = (
       from m in re.Matches(line)
       let oper = m.Groups[2].Value
       select new Record
       {
-        Line = lineNumber++,
         Digit = long.TryParse(m.Groups[1].Value, out var x) ? x as long? : null,
         Operator = !string.IsNullOrEmpty(oper) ? oper : null,
-        Level = oper == "(" ? level++ : oper == ")" ? --level : level,
+        Level = oper switch { "(" => level++, ")" => --level, _ => level },
       }
     ).ToList();
 
-    // Group summations A + B => ( A + B )
+    // --- Part Two ---
 
-    while (true) // <-- false for Part One, true for Part Two
+    for (var ix = 0; true;) // <-- false; for Part One, true; for Part Two
     {
-      var next = data.Select((item, index) => (item, index)).FirstOrDefault(x => x.item.Operator == "+" && !handled.Contains(x.item.Line));
+      // Group summations A + B => ( A + B )
+
+      var next = data.Select((item, index) => (item, index)).Skip(ix).FirstOrDefault(x => x.item.Operator == "+");
       if (next == default) break;
 
-      var index = next.index;
-      var item = next.item;
-      var lvl = item.Level;
+      var (index, item) = (next.index, next.item);
 
       // Find nearest group ( a [op] b ) or number
-      var l = data.Select((item, index) => (item, index)).Where(x => x.index <= index).Reverse().First(x => x.item.Level == item.Level && (x.item.Operator == "(" || x.item.Digit != null)).index;
-      var r = data.Select((item, index) => (item, index)).Where(x => x.index > index).First(x => x.item.Level == item.Level && (x.item.Operator == ")" || x.item.Digit != null)).index;
-
-      // Level up
-      data.Skip(l).Take(r - l + 1).ToList().ForEach(x => x.Level++);
+      var ixLeft = data.Select((item, index) => (item, index)).Take(index).Last(x => x.item.Level == item.Level && (x.item.Operator == "(" || x.item.Digit != null)).index;
+      var ixRight = data.Select((item, index) => (item, index)).Skip(index).First(x => x.item.Level == item.Level && (x.item.Operator == ")" || x.item.Digit != null)).index;
 
       // Add parentheses
-      data.Insert(l, new Record { Line = lineNumber++, Operator = "(", Level = lvl });
-      data.Insert(r + 2, new Record { Line = lineNumber++, Operator = ")", Level = lvl });
+      data.Insert(ixLeft, new Record { Operator = "(", Level = item.Level });
+      data.Insert(ixRight + 2, new Record { Operator = ")", Level = item.Level });
 
-      handled.Add(item.Line);
+      // Level up inner expression
+      data.Skip(ixLeft + 1).Take(ixRight - ixLeft + 1).ToList().ForEach(x => x.Level++);
+
+      ix = index + 2;
     }
 
     //data.Select(x => x.ToString()).Dump();
@@ -70,20 +67,18 @@ void Main()
     {
       var current = item.Digit ?? 0L;
 
-      if (item.Operator == "(")
+      switch (item.Operator)
       {
-        stack.Push((register, op));
-        (register, op) = (0, null);
-        continue;
-      }
-      else if (item.Operator == ")")
-      {
-        (current, (register, op)) = (register, stack.Pop());
-      }
-      else if (!string.IsNullOrEmpty(item.Operator))
-      {
-        op = item.Operator;
-        continue;
+        case "(":
+          stack.Push((register, op));
+          (register, op) = (0, null);
+          continue;
+        case ")":
+          (current, (register, op)) = (register, stack.Pop());
+          break;
+        case not null:
+          op = item.Operator;
+          continue;
       }
 
       register = op switch
@@ -92,7 +87,7 @@ void Main()
         "+" => register + current,
         "*" => register * current,
         "-" => register - current,
-        _ => throw new NotSupportedException(op),
+        _ => throw new NotSupportedException($"Operator not supported: {op}"),
       };
     }
 
