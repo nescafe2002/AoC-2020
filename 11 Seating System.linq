@@ -1,6 +1,5 @@
 <Query Kind="Statements">
   <Reference Relative="11 input.txt">C:\Drive\Challenges\AoC 2020\11 input.txt</Reference>
-  <Namespace>System.Threading.Tasks</Namespace>
 </Query>
 
 var input = @"L.LL.LL.LL
@@ -75,17 +74,17 @@ map.Where(x => x.Value).ToList().ForEach(x => map[x.Key] = false);
 
 var visibles =
   map.Keys.SelectMany(
-    key =>
+    a =>
       from v in new[] { (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) } // Vectors (dRow, dCol)
       from b in
         Enumerable.Range(1, 15) // Needs tuning
-          .Select(i => (key.row + i * v.Item1, key.col + i * v.Item2)) // Key + i * Vector
+          .Select(i => (a.row + i * v.Item1, a.col + i * v.Item2)) // Key + i * Vector
           .Where(x => x.Item1 >= 0 && x.Item1 < height)
           .Where(x => x.Item2 >= 0 && x.Item2 < width)
           .Where(x => map.ContainsKey(x)) // Has seat
           .Take(1) // First visible seat
-      select (key, b))
-    .ToLookup(x => x.key, x => x.b);
+      select (a, b))
+    .ToLookup(x => x.a, x => x.b);
 
 while (true)
 {
