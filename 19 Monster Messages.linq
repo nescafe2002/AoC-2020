@@ -23,11 +23,9 @@ var lines = input.SkipWhile(x => !string.IsNullOrWhiteSpace(x)).Skip(1).ToArray(
 
 string parse(string s) => string.Join("", s.Split().Select(x => int.TryParse(x, out var i) ? $"({parse(rules[i])})" : x.Trim('"')));
 
-Regex regex() => new Regex($"^{parse(rules[0])}$", RegexOptions.ExplicitCapture);
-
 int matches(Regex re) => lines.Count(x => re.IsMatch(x));
 
-int answer() => matches(regex());
+int answer() => matches(new Regex($"^{parse(rules[0])}$", RegexOptions.ExplicitCapture));
 
 answer().Dump("Answer 1");
 
