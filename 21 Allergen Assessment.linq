@@ -9,18 +9,12 @@ sqjhc mxmxvkd sbzzf (contains fish)".Split("\r\n");
 
 input = File.ReadAllLines("21 input.txt");
 
-var ix = 0;
-
-var re = new Regex(@"(.+) (contains .+)");
-
 var lines = (
   from line in input
   let s = line.Split(" (contains ")
   let ingredients = s[0].Split()
   let allergens = s[1].TrimEnd(')').Split(", ")
-  select (ix: ix++, ingredients, allergens)).ToList();
-
-//lines.Dump();
+  select (ingredients, allergens)).ToList();
 
 var lookup = lines.SelectMany(x => x.allergens.Select(a => (a, x.ingredients))).ToLookup(x => x.a, x => x.ingredients);
 
